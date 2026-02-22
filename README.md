@@ -33,7 +33,7 @@ A demo application that generates complete brand identities from two words and a
 
 ```bash
 git clone <repo>
-cd branding_pipline_example
+cd branding_pipeline_example
 
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
