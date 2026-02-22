@@ -4,6 +4,8 @@ A demo application that generates complete brand identities from two words and a
 
 > **Purpose:** Demonstrating multi-API orchestration — LLM text generation + Replicate image generation + image editing in a single pipeline.
 
+![Brand Builder screenshot](branding_pipeline_example.png)
+
 ---
 
 ## What It Generates
@@ -38,7 +40,7 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 # Edit .env with your API keys (see .env.example)
-cp .env .env.example
+cp .env.example .env
 ```
 
 `.env` keys:
@@ -66,6 +68,8 @@ ANTHROPIC_API_KEY=sk-ant-...    # optional
 - **Regenerate** — ↻ button on any image; supports custom prompts
 - **API inspector** — `</> API Calls` shows the exact payload sent to each API
 - **Image persistence** — images are saved locally immediately (Replicate URLs expire)
+- **Lightbox** — click any image to open full-screen with ‹/› navigation and keyboard arrow/Esc support
+- **Mobile responsive** — slide-in sidebar, stacked layout, touch-friendly at 720px and below
 
 ---
 
