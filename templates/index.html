@@ -697,11 +697,151 @@
       border-radius: 50%;
       animation: spin .6s linear infinite;
     }
+
+    /* ── Demo banner ─────────────────────────────────────────── */
+    .demo-banner {
+      display: none;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      background: rgba(245,158,11,.08);
+      border: 1px solid rgba(245,158,11,.2);
+      color: #f59e0b;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+    .demo-banner.visible { display: block; }
+    .adv-locked { opacity: 0.45; pointer-events: none; user-select: none; }
+
+    /* ── Lightbox ────────────────────────────────────────────── */
+    .gallery-item img { cursor: zoom-in; }
+    .lightbox-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.88);
+      z-index: 2000;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(6px);
+    }
+    .lightbox-overlay.open { display: flex; }
+    .lb-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 90vw;
+      max-height: 85vh;
+    }
+    .lb-content img {
+      max-width: 100%;
+      max-height: calc(85vh - 48px);
+      object-fit: contain;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border2);
+    }
+    .lb-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 12px;
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .lb-close {
+      position: fixed;
+      top: 20px; right: 24px;
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+      z-index: 2001;
+    }
+    .lb-close:hover { color: var(--text); border-color: var(--text); }
+    .lb-arrow {
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 32px;
+      width: 44px; height: 64px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+      flex-shrink: 0;
+      margin: 0 16px;
+    }
+    .lb-arrow:hover { color: var(--accent2); border-color: var(--accent); }
+
+    /* ── Sidebar toggle (hamburger) ──────────────────────────── */
+    .sidebar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 20px;
+      padding: 4px 6px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .sidebar-toggle:hover { color: var(--text); }
+    .sidebar-scrim {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 890;
+    }
+    .sidebar-scrim.visible { display: block; }
+
+    /* ── Mobile ──────────────────────────────────────────────── */
+    @media (max-width: 720px) {
+      header { padding: 10px 14px; gap: 10px; }
+      .sidebar-toggle { display: block; }
+
+      .layout { grid-template-columns: 1fr; }
+
+      .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 57px;
+        width: min(280px, 85vw);
+        height: calc(100vh - 57px);
+        z-index: 900;
+        transition: left .2s ease;
+      }
+      .sidebar.open { left: 0; }
+
+      .main { padding: 14px; gap: 14px; }
+
+      .brand-header { grid-template-columns: 1fr; }
+      .brand-header > div:last-child { order: -1; margin-bottom: 16px; }
+      .brand-name { font-size: clamp(28px, 9vw, 36px); }
+
+      .form-grid { grid-template-columns: 1fr; }
+      .adv-grid  { grid-template-columns: 1fr; }
+      .two-col   { grid-template-columns: 1fr; }
+
+      .pipeline-stages { overflow-x: auto; padding-bottom: 6px; }
+
+      .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+
+      .modal { max-width: 95%; padding: 18px; }
+
+      .lb-arrow { width: 34px; height: 48px; font-size: 26px; margin: 0 5px; }
+      .lb-close { top: 14px; right: 14px; }
+    }
   </style>
 </head>
 <body>
 
 <header>
+  <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Archive">☰</button>
   <span style="font-size:20px">✦</span>
   <h1>Brand Builder</h1>
   <span class="badge">AI Pipeline</span>
@@ -709,6 +849,8 @@
   <span id="statusDot" class="status-dot" title="Checking API keys…"></span>
   <span id="statusText" class="text-sm text-muted">Loading…</span>
 </header>
+
+<div class="sidebar-scrim" id="sidebarScrim" onclick="closeSidebar()"></div>
 
 <div class="layout">
   <!-- ── Sidebar ── -->
@@ -745,19 +887,24 @@
         <div class="form-field">
           <label>Tone</label>
           <div class="tone-select">
-            <button class="tone-btn active" data-tone="silly">😄 Silly</button>
-            <button class="tone-btn" data-tone="serious">🎩 Serious</button>
-            <button class="tone-btn" data-tone="scam">💀 Scam</button>
+            <button class="tone-btn active" data-tone="silly" title="Playful and absurd — exaggerated claims, fun personality">😄 Silly</button>
+            <button class="tone-btn" data-tone="serious" title="Professional and premium — authoritative, minimal, trustworthy">🎩 Serious</button>
+            <button class="tone-btn" data-tone="scam" title="Deliberately cheesy — infomercial energy, over-the-top promises">💀 Scam</button>
           </div>
         </div>
 
         <div class="form-field">
-          <label>Seed <span class="text-muted">(optional, for repeats)</span></label>
+          <label title="Set a seed to reproduce the same result. Leave blank for random.">Seed <span class="text-muted">(optional, for repeats)</span></label>
           <input type="number" id="seedInput" placeholder="e.g. 42" />
         </div>
       </div>
 
       <div class="divider" style="margin: 18px 0 14px"></div>
+
+      <div class="demo-banner" id="demoBanner">
+        ⚑ Demo mode — cost-optimised models (nano-banana / gpt-4o-mini) with conservative content filtering.
+        Concepts involving taboo or edgy topics may be blocked — try something tamer, or increase Safety Tolerance below.
+      </div>
 
       <!-- Advanced settings -->
       <div class="collapsible-header" id="advToggle" onclick="toggleAdv()">
@@ -792,14 +939,14 @@
             </select>
           </div>
           <div class="form-field">
-            <label>Output Quality <span class="range-val" id="qualityVal">90</span></label>
+            <label title="JPEG compression quality (60–100). Higher = larger files, sharper detail.">Output Quality <span class="range-val" id="qualityVal">90</span></label>
             <div class="range-row">
               <input type="range" id="outputQuality" min="60" max="100" value="90"
                 oninput="document.getElementById('qualityVal').textContent=this.value" />
             </div>
           </div>
           <div class="form-field">
-            <label>Safety Tolerance <span class="range-val" id="safetyVal">2</span></label>
+            <label title="1 = strictest content filtering, 5 = most permissive.">Safety Tolerance <span class="range-val" id="safetyVal">2</span></label>
             <div class="range-row">
               <input type="range" id="safetyTolerance" min="1" max="5" value="2"
                 oninput="document.getElementById('safetyVal').textContent=this.value" />
@@ -841,7 +988,7 @@
             <div class="tagline" id="resTagline">—</div>
             <div class="brand-story" id="resBrandStory">—</div>
             <div class="voice-tags" id="resVoice"></div>
-            <div class="palette-row" id="resPalette"></div>
+            <div class="palette-row" id="resPalette" title="Used as style guidance in all image prompts"></div>
             <div class="mt12 flex-row">
               <span class="text-sm text-muted" id="resTypography"></span>
             </div>
@@ -871,7 +1018,7 @@
 
       <!-- Gallery -->
       <div class="card" id="galleryCard">
-        <div class="card-title flex-row">
+        <div class="card-title flex-row" title="All images generated with the brand color palette and voice as prompt context">
           <span class="icon">◈</span> Image Gallery
           <span class="spacer"></span>
           <button class="btn btn-ghost btn-sm" onclick="toggleApiCalls()">
@@ -896,6 +1043,20 @@
   </main><!-- /main -->
 </div><!-- /layout -->
 
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightbox" onclick="lightboxClickOutside(event)">
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <button class="lb-arrow lb-prev" onclick="lightboxPrev(); event.stopPropagation()">‹</button>
+  <div class="lb-content" onclick="event.stopPropagation()">
+    <img id="lightboxImg" src="" alt="" />
+    <div class="lb-meta">
+      <span id="lightboxLabel"></span>
+      <span id="lightboxCount"></span>
+    </div>
+  </div>
+  <button class="lb-arrow lb-next" onclick="lightboxNext(); event.stopPropagation()">›</button>
+</div>
+
 <!-- Regen prompt modal -->
 <div class="modal-overlay" id="regenModal">
   <div class="modal">
@@ -915,6 +1076,9 @@
 </div>
 
 <script>
+// ── Config ──────────────────────────────────────────────────────────────
+const DEMO_MODE = false;
+
 // ── State ───────────────────────────────────────────────────────────────
 let models = null;
 let currentTone = 'silly';
@@ -922,6 +1086,14 @@ let activeRunId = null;
 let activeStream = null;
 let regenTarget = { runId: null, stage: null };
 let stageStatuses = {};
+
+// Lightbox
+let lightboxImages = {};
+let lightboxCurrentStage = null;
+const LIGHTBOX_STAGES = [
+  'hero_image','logo_image','product_angle','product_topdown',
+  'product_macro','product_in_use','merch_tshirt','merch_hat'
+];
 
 const TOTAL_STAGES = 10; // brand_text + 9 image stages
 
@@ -971,6 +1143,26 @@ async function loadModels() {
     const ok = models.replicate_available && models.text_providers.some(p => p.available);
     document.getElementById('statusDot').className = 'status-dot' + (ok ? ' ok' : '');
     document.getElementById('statusText').textContent = ok ? 'APIs ready' : 'Missing API keys';
+
+    // Demo mode — lock dropdowns to cheap defaults
+    if (DEMO_MODE) {
+      const imgSel  = document.getElementById('imageModel');
+      const editSel = document.getElementById('editModel');
+      const provSel = document.getElementById('textProvider');
+
+      // Override image/edit model to google/nano-banana
+      for (const opt of imgSel.options)  opt.selected = opt.value === 'google/nano-banana';
+      for (const opt of editSel.options) opt.selected = opt.value === 'google/nano-banana';
+
+      // Override text provider to openai; text model stays at default (gpt-4o-mini)
+      for (const opt of provSel.options) opt.selected = opt.value === 'openai';
+      onProviderChange(); // re-populate text model list for openai
+
+      // Lock entire Advanced section
+      document.getElementById('advBody').classList.add('adv-locked');
+
+      document.getElementById('demoBanner').classList.add('visible');
+    }
 
   } catch (e) {
     document.getElementById('statusText').textContent = 'Could not load models';
@@ -1102,6 +1294,19 @@ document.querySelectorAll('.tone-btn').forEach(btn => {
   });
 });
 
+// ── Sidebar (mobile) ───────────────────────────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const scrim   = document.getElementById('sidebarScrim');
+  const open    = sidebar.classList.toggle('open');
+  scrim.classList.toggle('visible', open);
+}
+
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebarScrim').classList.remove('visible');
+}
+
 // ── Advanced toggle ────────────────────────────────────────────────────
 function toggleAdv() {
   const hdr = document.getElementById('advToggle');
@@ -1166,8 +1371,54 @@ async function startRun() {
   }
 }
 
+// ── Clear / init results ───────────────────────────────────────────────
+function clearResults() {
+  lightboxImages = {};
+
+  setEl('resBrandName',  '—');
+  setEl('resTagline',    '—');
+  setEl('resBrandStory', '');
+  setEl('resProductDesc', '');
+  setEl('resLogoDir',    '');
+  document.getElementById('resVoice').innerHTML   = '';
+  document.getElementById('resPalette').innerHTML = '';
+  setEl('resTypography', '');
+  document.getElementById('resFeatures').innerHTML = '';
+  document.getElementById('resUsage').innerHTML    = '';
+
+  const img = document.getElementById('resHeroImg');
+  img.src = ''; img.style.display = 'none';
+  img.onclick = null; img.style.cursor = '';
+  document.getElementById('resHeroPlaceholder').style.display = '';
+
+  document.getElementById('galleryGrid').innerHTML    = '';
+  document.getElementById('apiCallsList').innerHTML   = '';
+  document.getElementById('apiCallsCard').style.display = 'none';
+}
+
+function initGalleryPlaceholders() {
+  const stages = [
+    'hero_image', 'logo_image', 'product_angle', 'product_topdown',
+    'product_macro', 'product_in_use', 'merch_tshirt', 'merch_hat',
+  ];
+  const grid = document.getElementById('galleryGrid');
+  stages.forEach(stage => {
+    if (document.getElementById(`gallery-${stage}`)) return;
+    const label = STAGE_LABELS[stage] || stage;
+    const item = document.createElement('div');
+    item.className = 'gallery-item';
+    item.id = `gallery-${stage}`;
+    item.innerHTML = `
+      <div class="gallery-placeholder"><div class="spinner"></div></div>
+      <div class="gallery-footer"><span class="gallery-label">${label}</span></div>
+    `;
+    grid.appendChild(item);
+  });
+}
+
 // ── SSE streaming ──────────────────────────────────────────────────────
 function startStreaming(runId, concept, tone) {
+  clearResults();
   // Show pipeline
   document.getElementById('pipelineCard').classList.add('visible');
   document.getElementById('resultsContainer').classList.remove('visible');
@@ -1230,6 +1481,7 @@ function handleStreamEvent(runId, msg) {
   // Brand text arrived
   if (stage === 'brand_text' && status === 'completed' && data) {
     showBrandText(data);
+    initGalleryPlaceholders();
     document.getElementById('resultsContainer').classList.add('visible');
   }
 
@@ -1241,7 +1493,11 @@ function handleStreamEvent(runId, msg) {
 
   // Pipeline failed
   if (stage === 'pipeline' && status === 'failed') {
-    showError(message || 'Pipeline failed');
+    // Any stage still spinning needs to be marked failed
+    Object.entries(stageStatuses).forEach(([s, st]) => {
+      if (st === 'started') updateStageNode(s, 'failed', 'Failed');
+    });
+    showError(interpretReplicateError(message));
   }
 }
 
@@ -1326,14 +1582,23 @@ function showAllImages(images) {
 }
 
 function setHeroImage(src) {
+  lightboxImages['hero_image'] = src;
   const img = document.getElementById('resHeroImg');
   const ph  = document.getElementById('resHeroPlaceholder');
-  img.src = src;
-  img.style.display = 'block';
-  ph.style.display = 'none';
+  img.onclick = () => openLightbox('hero_image');
+  img.style.cursor = 'zoom-in';
+  const preload = new Image();
+  preload.onload = () => {
+    img.src = src;
+    img.style.display = 'block';
+    ph.style.display = 'none';
+  };
+  preload.src = src;
 }
 
 function updateGalleryItem(stage, src) {
+  lightboxImages[stage] = src;
+
   const grid = document.getElementById('galleryGrid');
   let item = document.getElementById(`gallery-${stage}`);
 
@@ -1344,17 +1609,23 @@ function updateGalleryItem(stage, src) {
     grid.appendChild(item);
   }
 
+  // Keep the spinner placeholder until the image is fully downloaded,
+  // then swap in one atomic innerHTML replace — no broken-image flash.
   const label = STAGE_LABELS[stage] || stage;
-  item.innerHTML = `
-    <a href="${src}" target="_blank">
-      <img src="${src}" alt="${label}" loading="lazy" />
-    </a>
-    <div class="gallery-footer">
-      <span class="gallery-label">${label}</span>
-      <button class="regen-btn" title="Regenerate ${label}"
-        onclick="openRegenModal('${stage}')">↻</button>
-    </div>
-  `;
+  const preload = new Image();
+  preload.onload = () => {
+    item.innerHTML = `
+      <div onclick="openLightbox('${stage}')">
+        <img src="${src}" alt="${label}" />
+      </div>
+      <div class="gallery-footer">
+        <span class="gallery-label">${label}</span>
+        <button class="regen-btn" title="Regenerate ${label}"
+          onclick="openRegenModal('${stage}')">↻</button>
+      </div>
+    `;
+  };
+  preload.src = src;
 }
 
 // ── API calls display ──────────────────────────────────────────────────
@@ -1509,6 +1780,7 @@ async function openHistoryRun(runId) {
   activeRunId = runId;
   document.querySelectorAll('.run-card').forEach(c => c.classList.remove('active'));
   event.currentTarget.classList.add('active');
+  closeSidebar();
 
   // Reset pipeline UI
   document.getElementById('pipelineCard').classList.remove('visible');
@@ -1539,6 +1811,72 @@ function escapeHtml(str) {
 // Keyboard shortcut: Enter in concept field submits
 document.getElementById('conceptInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') startRun();
+});
+
+// ── Error interpretation ───────────────────────────────────────────────
+function interpretReplicateError(msg) {
+  if (!msg) return 'Pipeline failed — unknown error.';
+  const m = msg.toLowerCase();
+  if (m.includes('insufficient credits') || m.includes('billing') || m.includes('402') || m.includes('payment'))
+    return `Out of Replicate credits — add billing at replicate.com. (${msg})`;
+  if (m.includes('api token') || m.includes('401') || m.includes('authentication') || m.includes('invalid or expired'))
+    return `Replicate API token is invalid or missing — check REPLICATE_API_TOKEN in .env. (${msg})`;
+  if (m.includes('failed to generate image') || m.includes('nsfw') || m.includes('content filter') || m.includes('sensitive'))
+    return `Image blocked by content filter — try a different concept, or increase Safety Tolerance in Advanced. (${msg})`;
+  if (m.includes('rate limit') || m.includes('429') || m.includes('too many'))
+    return `Replicate rate limit hit — wait a moment and try again. (${msg})`;
+  return msg;
+}
+
+// ── Lightbox ───────────────────────────────────────────────────────────
+function openLightbox(stage) {
+  lightboxCurrentStage = stage;
+  renderLightbox();
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function renderLightbox() {
+  const src = lightboxImages[lightboxCurrentStage] || '';
+  const label = STAGE_LABELS[lightboxCurrentStage] || lightboxCurrentStage;
+  const available = LIGHTBOX_STAGES.filter(s => lightboxImages[s]);
+  const idx = available.indexOf(lightboxCurrentStage);
+
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightboxImg').alt = label;
+  document.getElementById('lightboxLabel').textContent = label;
+  document.getElementById('lightboxCount').textContent =
+    available.length > 1 ? `${idx + 1} / ${available.length}` : '';
+}
+
+function lightboxPrev() {
+  const available = LIGHTBOX_STAGES.filter(s => lightboxImages[s]);
+  if (!available.length) return;
+  const idx = available.indexOf(lightboxCurrentStage);
+  lightboxCurrentStage = available[(idx - 1 + available.length) % available.length];
+  renderLightbox();
+}
+
+function lightboxNext() {
+  const available = LIGHTBOX_STAGES.filter(s => lightboxImages[s]);
+  if (!available.length) return;
+  const idx = available.indexOf(lightboxCurrentStage);
+  lightboxCurrentStage = available[(idx + 1) % available.length];
+  renderLightbox();
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+function lightboxClickOutside(event) {
+  if (event.target === document.getElementById('lightbox')) closeLightbox();
+}
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'ArrowLeft')  lightboxPrev();
+  if (e.key === 'ArrowRight') lightboxNext();
+  if (e.key === 'Escape')     closeLightbox();
 });
 
 // ── Boot ───────────────────────────────────────────────────────────────
