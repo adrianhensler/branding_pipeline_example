@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+.venv/
+venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Database
+runs.db
+runs.db-shm
+runs.db-wal
+
+# Logs (keep directory, ignore content)
+logs/*.log
+logs/*.json
+!logs/.gitkeep
+
+# Generated images
+static/images/*/
+
+# CLI output
+cli_output/
+
+# Reports
+reports/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

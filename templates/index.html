@@ -1,0 +1,1548 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brand Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ──────────────────────────────────────── */
+    :root {
+      --bg:       #0d0f14;
+      --surface:  #161921;
+      --surface2: #1e2230;
+      --border:   #2a2f3d;
+      --border2:  #3a4050;
+      --text:     #e2e8f0;
+      --muted:    #8892a4;
+      --accent:   #7c6eff;
+      --accent2:  #a78bfa;
+      --success:  #10b981;
+      --warning:  #f59e0b;
+      --danger:   #ef4444;
+      --radius:   10px;
+      --radius-lg:16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+    header .badge {
+      font-size: 11px;
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: .05em;
+      font-weight: 600;
+    }
+    header .spacer { flex: 1; }
+    header .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    header .status-dot.ok { background: var(--success); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      flex: 1;
+      overflow: hidden;
+      max-height: calc(100vh - 57px);
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 14px 16px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .sidebar-list::-webkit-scrollbar { width: 4px; }
+    .sidebar-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    .run-card {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all .15s;
+      margin-bottom: 4px;
+    }
+    .run-card:hover { background: var(--surface2); border-color: var(--border); }
+    .run-card.active { background: var(--surface2); border-color: var(--accent); }
+
+    .run-thumb {
+      width: 48px; height: 48px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: var(--surface2);
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .run-thumb-placeholder {
+      width: 48px; height: 48px;
+      border-radius: 6px;
+      background: var(--surface2);
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .run-info { flex: 1; min-width: 0; }
+    .run-info .concept {
+      font-weight: 500;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .run-info .brand-name { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .run-info .meta { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+    .tone-badge, .status-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .tone-badge.silly   { background: #fef3c7; color: #92400e; }
+    .tone-badge.serious { background: #dbeafe; color: #1e40af; }
+    .tone-badge.scam    { background: #fce7f3; color: #9d174d; }
+    .status-badge.pending  { background: var(--border2); color: var(--muted); }
+    .status-badge.running  { background: #1e3a5f; color: #60a5fa; }
+    .status-badge.complete { background: #064e3b; color: #34d399; }
+    .status-badge.failed   { background: #450a0a; color: #fca5a5; }
+
+    /* ── Main area ───────────────────────────────────────────── */
+    .main {
+      overflow-y: auto;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .main::-webkit-scrollbar { width: 6px; }
+    .main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* ── Cards ───────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .icon { font-size: 16px; }
+
+    /* ── Form ─────────────────────────────────────────────────── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    input[type="text"], input[type="number"], select, textarea {
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+    select option { background: var(--surface2); }
+
+    .tone-select { display: flex; gap: 8px; }
+    .tone-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .tone-btn:hover { border-color: var(--border2); color: var(--text); }
+    .tone-btn.active {
+      border-color: var(--accent);
+      background: rgba(124,110,255,.12);
+      color: var(--accent2);
+    }
+
+    .collapsible-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .collapsible-header:hover { color: var(--text); }
+    .collapsible-header .chevron {
+      font-size: 11px;
+      transition: transform .2s;
+    }
+    .collapsible-header.open .chevron { transform: rotate(90deg); }
+    .collapsible-body { display: none; padding-top: 16px; }
+    .collapsible-body.open { display: block; }
+
+    .adv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .range-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      padding: 0;
+    }
+    .range-val {
+      min-width: 28px;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: right;
+    }
+
+    /* ── Submit button ───────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: #6a5cf0; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border2);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .btn-danger { background: rgba(239,68,68,.12); color: var(--danger); border: 1px solid rgba(239,68,68,.3); }
+
+    /* ── Pipeline flow ───────────────────────────────────────── */
+    .pipeline-container {
+      display: none;
+    }
+    .pipeline-container.visible { display: block; }
+
+    .pipeline-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 16px;
+    }
+
+    .pipeline-flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      position: relative;
+    }
+
+    /* Row 1: LLM + 3 independent generators */
+    /* Row 2: dependents */
+    .pipeline-stages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .pipeline-row {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .pipeline-connector {
+      display: flex;
+      align-items: center;
+      color: var(--border2);
+      font-size: 18px;
+      padding: 0 2px;
+      flex-shrink: 0;
+    }
+
+    .pipeline-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stage-node {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg);
+      min-width: 160px;
+      transition: all .2s;
+      position: relative;
+    }
+    .stage-node .check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+      transition: all .2s;
+    }
+    .stage-node .stage-label { font-size: 13px; font-weight: 500; }
+    .stage-node .stage-msg { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* Status states */
+    .stage-node.pending  { opacity: .6; }
+    .stage-node.started  { border-color: #3b82f6; background: rgba(59,130,246,.06); }
+    .stage-node.started .check { border-color: #3b82f6; animation: pulse-ring .8s infinite; }
+    .stage-node.completed { border-color: var(--success); background: rgba(16,185,129,.06); }
+    .stage-node.completed .check { border-color: var(--success); background: var(--success); color: #fff; }
+    .stage-node.failed { border-color: var(--danger); background: rgba(239,68,68,.06); }
+    .stage-node.failed .check { border-color: var(--danger); background: var(--danger); color: #fff; }
+    .stage-node.skipped { opacity: .4; }
+    .stage-node.regenerated { border-color: var(--accent); background: rgba(124,110,255,.06); }
+    .stage-node.regenerated .check { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+    @keyframes pulse-ring {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,.4); }
+      50%       { box-shadow: 0 0 0 4px rgba(59,130,246,.0); }
+    }
+
+    /* ── Progress bar ────────────────────────────────────────── */
+    .progress-wrap {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      transition: width .4s ease;
+      width: 0%;
+    }
+    .progress-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      min-height: 18px;
+    }
+
+    /* ── Results ─────────────────────────────────────────────── */
+    .results-container { display: none; }
+    .results-container.visible { display: block; }
+
+    .brand-header {
+      display: grid;
+      grid-template-columns: 1fr 240px;
+      gap: 24px;
+      align-items: start;
+    }
+    .brand-name {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -.03em;
+      margin-bottom: 6px;
+    }
+    .tagline {
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .brand-story {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+      opacity: .85;
+    }
+
+    .palette-row { display: flex; gap: 8px; margin-top: 12px; }
+    .swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.1);
+      cursor: pointer;
+      position: relative;
+    }
+    .swatch:hover::after {
+      content: attr(data-color);
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      background: var(--surface2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      color: var(--text);
+      pointer-events: none;
+    }
+
+    .voice-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .voice-tag {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--muted);
+    }
+
+    .hero-img {
+      width: 100%;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      aspect-ratio: 1;
+      object-fit: cover;
+    }
+    .hero-img-placeholder {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: var(--radius-lg);
+      border: 1px dashed var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ── Gallery ─────────────────────────────────────────────── */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .gallery-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      transition: border-color .15s;
+    }
+    .gallery-item:hover { border-color: var(--border2); }
+
+    .gallery-item img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
+    .gallery-item .gallery-placeholder {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 24px;
+    }
+    .gallery-footer {
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .gallery-label { font-size: 12px; color: var(--muted); flex: 1; font-weight: 500; }
+
+    .regen-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: all .15s;
+    }
+    .regen-btn:hover { color: var(--accent2); background: rgba(124,110,255,.12); }
+    .regen-btn.spinning { animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── API Calls inspector ─────────────────────────────────── */
+    .api-calls-section {
+      margin-top: 12px;
+    }
+    .api-call-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+    .api-call-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .api-call-header:hover { background: var(--surface2); }
+    .api-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .api-badge.openai    { background: #0d2f2f; color: #34d399; }
+    .api-badge.anthropic { background: #1a1a2e; color: #a78bfa; }
+    .api-badge.replicate { background: #1a1f0f; color: #bef264; }
+    .api-call-stage { font-size: 13px; font-weight: 500; }
+    .api-call-model { font-size: 12px; color: var(--muted); margin-left: auto; }
+    .api-call-body {
+      display: none;
+      padding: 0 14px 14px;
+    }
+    .api-call-body.open { display: block; }
+    pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #a0aec0;
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* ── Copy prompt modal ────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      max-width: 560px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+
+    /* ── Error banner ─────────────────────────────────────────── */
+    .error-banner {
+      display: none;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      background: rgba(239,68,68,.1);
+      border: 1px solid rgba(239,68,68,.3);
+      color: #fca5a5;
+      font-size: 14px;
+      gap: 10px;
+      align-items: center;
+    }
+    .error-banner.visible { display: flex; }
+    .error-banner .error-icon { font-size: 18px; flex-shrink: 0; }
+    .error-banner .error-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    /* ── Feature bullets / usage ─────────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .copy-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: 11px; }
+    .copy-section ul { list-style: none; padding: 0; }
+    .copy-section li { font-size: 14px; line-height: 1.6; padding: 4px 0; padding-left: 18px; position: relative; }
+    .copy-section li::before { content: '→'; position: absolute; left: 0; color: var(--accent); }
+
+    /* ── Misc helpers ─────────────────────────────────────────── */
+    .divider { height: 1px; background: var(--border); margin: 8px 0; }
+    .text-muted { color: var(--muted); }
+    .text-sm { font-size: 12px; }
+    .mt4 { margin-top: 4px; }
+    .mt8 { margin-top: 8px; }
+    .mt12 { margin-top: 12px; }
+    .mt16 { margin-top: 16px; }
+    .flex-row { display: flex; align-items: center; gap: 10px; }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .empty-state .emoji { font-size: 32px; margin-bottom: 10px; }
+
+    /* ── Loading spinner ─────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:20px">✦</span>
+  <h1>Brand Builder</h1>
+  <span class="badge">AI Pipeline</span>
+  <span class="spacer"></span>
+  <span id="statusDot" class="status-dot" title="Checking API keys…"></span>
+  <span id="statusText" class="text-sm text-muted">Loading…</span>
+</header>
+
+<div class="layout">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">Run History</div>
+    <div class="sidebar-list" id="historyList">
+      <div class="empty-state">
+        <div class="emoji">◉</div>
+        No runs yet — generate your first brand!
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- Error banner -->
+    <div class="error-banner" id="errorBanner">
+      <span class="error-icon">⚠</span>
+      <span id="errorMsg"></span>
+      <button class="error-close" onclick="hideError()">✕</button>
+    </div>
+
+    <!-- ── New run form ── -->
+    <div class="card" id="runForm">
+      <div class="card-title"><span class="icon">✦</span> New Brand</div>
+
+      <div class="form-grid">
+        <div class="form-field" style="grid-column:1/-1">
+          <label>Concept <span class="text-muted">(two-word seed)</span></label>
+          <input type="text" id="conceptInput" placeholder="moon shoes / spy toaster / diamond NFT" />
+        </div>
+
+        <div class="form-field">
+          <label>Tone</label>
+          <div class="tone-select">
+            <button class="tone-btn active" data-tone="silly">😄 Silly</button>
+            <button class="tone-btn" data-tone="serious">🎩 Serious</button>
+            <button class="tone-btn" data-tone="scam">💀 Scam</button>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Seed <span class="text-muted">(optional, for repeats)</span></label>
+          <input type="number" id="seedInput" placeholder="e.g. 42" />
+        </div>
+      </div>
+
+      <div class="divider" style="margin: 18px 0 14px"></div>
+
+      <!-- Advanced settings -->
+      <div class="collapsible-header" id="advToggle" onclick="toggleAdv()">
+        <span class="chevron">▶</span>
+        Advanced Settings
+      </div>
+      <div class="collapsible-body" id="advBody">
+        <div class="adv-grid">
+          <div class="form-field">
+            <label>Text Provider</label>
+            <select id="textProvider" onchange="onProviderChange()">
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic (Claude)</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Text Model</label>
+            <select id="textModel">
+              <option value="gpt-4o-mini">Loading…</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Image Model</label>
+            <select id="imageModel">
+              <option value="black-forest-labs/flux-1.1-pro">Loading…</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Edit Model <span class="text-muted">(variants)</span></label>
+            <select id="editModel">
+              <option value="black-forest-labs/flux-kontext-pro">Loading…</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Output Quality <span class="range-val" id="qualityVal">90</span></label>
+            <div class="range-row">
+              <input type="range" id="outputQuality" min="60" max="100" value="90"
+                oninput="document.getElementById('qualityVal').textContent=this.value" />
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Safety Tolerance <span class="range-val" id="safetyVal">2</span></label>
+            <div class="range-row">
+              <input type="range" id="safetyTolerance" min="1" max="5" value="2"
+                oninput="document.getElementById('safetyVal').textContent=this.value" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt16" style="display:flex;gap:10px;align-items:center">
+        <button class="btn btn-primary" id="generateBtn" onclick="startRun()">
+          <span>✦</span> Generate Brand
+        </button>
+        <span id="generateStatus" class="text-muted text-sm"></span>
+      </div>
+    </div>
+
+    <!-- ── Pipeline progress ── -->
+    <div class="card pipeline-container" id="pipelineCard">
+      <div class="pipeline-title">Pipeline Progress</div>
+
+      <div class="pipeline-stages" id="pipelineStages">
+        <!-- Built by JS -->
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-label" id="progressLabel">Initialising…</div>
+    </div>
+
+    <!-- ── Results ── -->
+    <div class="results-container" id="resultsContainer">
+
+      <!-- Brand overview -->
+      <div class="card" id="brandOverviewCard">
+        <div class="brand-header">
+          <div>
+            <div class="brand-name" id="resBrandName">—</div>
+            <div class="tagline" id="resTagline">—</div>
+            <div class="brand-story" id="resBrandStory">—</div>
+            <div class="voice-tags" id="resVoice"></div>
+            <div class="palette-row" id="resPalette"></div>
+            <div class="mt12 flex-row">
+              <span class="text-sm text-muted" id="resTypography"></span>
+            </div>
+          </div>
+          <div>
+            <img id="resHeroImg" class="hero-img" style="display:none" />
+            <div class="hero-img-placeholder" id="resHeroPlaceholder">Generating…</div>
+          </div>
+        </div>
+
+        <div class="divider" style="margin:20px 0"></div>
+
+        <div class="two-col">
+          <div class="copy-section">
+            <h3>Product</h3>
+            <p id="resProductDesc" style="font-size:14px;line-height:1.6;margin-bottom:10px"></p>
+            <ul id="resFeatures"></ul>
+          </div>
+          <div class="copy-section">
+            <h3>Usage Examples</h3>
+            <ul id="resUsage"></ul>
+            <h3 style="margin-top:14px">Logo Direction</h3>
+            <p id="resLogoDir" style="font-size:13px;color:var(--muted);line-height:1.6"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gallery -->
+      <div class="card" id="galleryCard">
+        <div class="card-title flex-row">
+          <span class="icon">◈</span> Image Gallery
+          <span class="spacer"></span>
+          <button class="btn btn-ghost btn-sm" onclick="toggleApiCalls()">
+            &lt;/&gt; API Calls
+          </button>
+        </div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+
+      <!-- API calls -->
+      <div class="card" id="apiCallsCard" style="display:none">
+        <div class="card-title flex-row">
+          <span class="icon">&lt;/&gt;</span> API Calls
+          <span class="spacer"></span>
+          <button class="btn btn-ghost btn-sm" onclick="toggleApiCalls()">Hide</button>
+        </div>
+        <div id="apiCallsList" class="api-calls-section"></div>
+      </div>
+
+    </div><!-- /results-container -->
+
+  </main><!-- /main -->
+</div><!-- /layout -->
+
+<!-- Regen prompt modal -->
+<div class="modal-overlay" id="regenModal">
+  <div class="modal">
+    <div class="modal-title">Regenerate <span id="regenStageName"></span></div>
+    <div class="form-field">
+      <label>Custom Prompt <span class="text-muted">(optional — leave blank to use auto-generated prompt)</span></label>
+      <textarea id="regenPromptInput" rows="4" placeholder="Enter a custom prompt or leave blank…" style="resize:vertical"></textarea>
+    </div>
+    <div class="mt8">
+      <div id="regenCurrentPrompt" style="font-size:12px;color:var(--muted)"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeRegenModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmRegen()">↻ Regenerate</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ───────────────────────────────────────────────────────────────
+let models = null;
+let currentTone = 'silly';
+let activeRunId = null;
+let activeStream = null;
+let regenTarget = { runId: null, stage: null };
+let stageStatuses = {};
+
+const TOTAL_STAGES = 10; // brand_text + 9 image stages
+
+const STAGE_LABELS = {
+  brand_text:       'Brand Text',
+  hero_image:       'Hero Image',
+  logo_image:       'Logo',
+  alt_base_image:   'Base Product',
+  product_angle:    'Product Angle',
+  product_topdown:  'Top Down',
+  product_macro:    'Macro Detail',
+  product_in_use:   'In Use',
+  merch_tshirt:     'T-Shirt',
+  merch_hat:        'Hat',
+};
+
+// ── Initialise ──────────────────────────────────────────────────────────
+async function init() {
+  await loadModels();
+  await loadHistory();
+}
+
+async function loadModels() {
+  try {
+    const r = await fetch('/api/models');
+    models = await r.json();
+
+    // Text providers
+    const provSel = document.getElementById('textProvider');
+    provSel.innerHTML = '';
+    models.text_providers.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name + (p.available ? '' : ' ✗ (no key)');
+      opt.disabled = !p.available;
+      provSel.appendChild(opt);
+    });
+    if (models.text_providers.length) {
+      onProviderChange();
+    }
+
+    // Image models
+    populateSelect('imageModel', models.image_models, 'id', 'name', 'black-forest-labs/flux-1.1-pro');
+    populateSelect('editModel', models.edit_models, 'id', 'name', 'black-forest-labs/flux-kontext-pro');
+
+    // Status dot
+    const ok = models.replicate_available && models.text_providers.some(p => p.available);
+    document.getElementById('statusDot').className = 'status-dot' + (ok ? ' ok' : '');
+    document.getElementById('statusText').textContent = ok ? 'APIs ready' : 'Missing API keys';
+
+  } catch (e) {
+    document.getElementById('statusText').textContent = 'Could not load models';
+    console.error(e);
+  }
+}
+
+function populateSelect(id, items, valueKey, labelKey, defaultValue) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '';
+  items.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item[valueKey];
+    opt.textContent = item[labelKey];
+    if (item[valueKey] === defaultValue || item.default) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function onProviderChange() {
+  if (!models) return;
+  const provId = document.getElementById('textProvider').value;
+  const prov = models.text_providers.find(p => p.id === provId);
+  if (!prov) return;
+  populateSelect('textModel', prov.models, 'id', 'name', null);
+}
+
+// ── Pipeline stages UI ─────────────────────────────────────────────────
+function buildPipelineUI() {
+  stageStatuses = {};
+  const container = document.getElementById('pipelineStages');
+  container.innerHTML = '';
+
+  // Row 1: brand_text → hero_image, logo_image, alt_base_image
+  const row1 = makePipelineRow([
+    makeStageNode('brand_text'),
+    makeConnector('→'),
+    makeStageGroup([
+      makeStageNode('hero_image'),
+      makeStageNode('logo_image'),
+      makeStageNode('alt_base_image'),
+    ]),
+    makeConnector('→'),
+    makeStageGroup([
+      makeStageNode('product_in_use'),
+      makeStageGroup([
+        makeStageNode('merch_tshirt'),
+        makeStageNode('merch_hat'),
+      ]),
+      makeStageGroup([
+        makeStageNode('product_angle'),
+        makeStageNode('product_topdown'),
+        makeStageNode('product_macro'),
+      ]),
+    ])
+  ]);
+  container.appendChild(row1);
+}
+
+function makeStageNode(id) {
+  const el = document.createElement('div');
+  el.className = 'stage-node pending';
+  el.id = `stage-${id}`;
+  el.innerHTML = `
+    <div class="check"></div>
+    <div>
+      <div class="stage-label">${STAGE_LABELS[id] || id}</div>
+    </div>
+  `;
+  stageStatuses[id] = 'pending';
+  return el;
+}
+
+function makeConnector(char) {
+  const el = document.createElement('div');
+  el.className = 'pipeline-connector';
+  el.textContent = char;
+  return el;
+}
+
+function makeStageGroup(children) {
+  const el = document.createElement('div');
+  el.className = 'pipeline-group';
+  children.forEach(c => el.appendChild(c));
+  return el;
+}
+
+function makePipelineRow(children) {
+  const el = document.createElement('div');
+  el.className = 'pipeline-row';
+  children.forEach(c => el.appendChild(c));
+  return el;
+}
+
+function updateStageNode(stage, status, message) {
+  const node = document.getElementById(`stage-${stage}`);
+  if (!node) return;
+  node.className = `stage-node ${status}`;
+  const checkEl = node.querySelector('.check');
+  if (status === 'completed' || status === 'regenerated') {
+    checkEl.textContent = '✓';
+  } else if (status === 'failed') {
+    checkEl.textContent = '✕';
+  } else if (status === 'skipped') {
+    checkEl.textContent = '–';
+  } else if (status === 'started') {
+    checkEl.innerHTML = '<div class="spinner" style="width:10px;height:10px;border-width:2px"></div>';
+  } else {
+    checkEl.textContent = '';
+  }
+  stageStatuses[stage] = status;
+  updateProgress();
+}
+
+function updateProgress() {
+  const done = Object.values(stageStatuses).filter(
+    s => s === 'completed' || s === 'skipped' || s === 'failed' || s === 'regenerated'
+  ).length;
+  const pct = Math.round((done / TOTAL_STAGES) * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ── Tone selector ──────────────────────────────────────────────────────
+document.querySelectorAll('.tone-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTone = btn.dataset.tone;
+  });
+});
+
+// ── Advanced toggle ────────────────────────────────────────────────────
+function toggleAdv() {
+  const hdr = document.getElementById('advToggle');
+  const body = document.getElementById('advBody');
+  hdr.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+// ── Error helpers ──────────────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorBanner').classList.add('visible');
+}
+function hideError() {
+  document.getElementById('errorBanner').classList.remove('visible');
+}
+
+// ── Start run ──────────────────────────────────────────────────────────
+async function startRun() {
+  const concept = document.getElementById('conceptInput').value.trim();
+  if (!concept) { showError('Please enter a concept.'); return; }
+
+  hideError();
+
+  const seed = document.getElementById('seedInput').value;
+  const settings = {
+    text_provider: document.getElementById('textProvider').value,
+    text_model:    document.getElementById('textModel').value,
+    image_model:   document.getElementById('imageModel').value,
+    edit_model:    document.getElementById('editModel').value,
+    output_quality:  parseInt(document.getElementById('outputQuality').value),
+    safety_tolerance: parseInt(document.getElementById('safetyTolerance').value),
+  };
+
+  // Disable button
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  document.getElementById('generateStatus').textContent = 'Starting…';
+
+  try {
+    const r = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ concept, tone: currentTone, seed: seed || null, settings }),
+    });
+    const data = await r.json();
+
+    if (!r.ok || data.error) {
+      showError(data.error || 'Failed to start run');
+      btn.disabled = false;
+      document.getElementById('generateStatus').textContent = '';
+      return;
+    }
+
+    activeRunId = data.run_id;
+    startStreaming(data.run_id, concept, currentTone);
+
+  } catch (e) {
+    showError('Network error: ' + e.message);
+    btn.disabled = false;
+    document.getElementById('generateStatus').textContent = '';
+  }
+}
+
+// ── SSE streaming ──────────────────────────────────────────────────────
+function startStreaming(runId, concept, tone) {
+  // Show pipeline
+  document.getElementById('pipelineCard').classList.add('visible');
+  document.getElementById('resultsContainer').classList.remove('visible');
+  buildPipelineUI();
+  document.getElementById('progressLabel').textContent = 'Connecting…';
+
+  // Close any previous stream
+  if (activeStream) activeStream.close();
+
+  activeStream = new EventSource(`/api/stream/${runId}`);
+
+  activeStream.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    handleStreamEvent(runId, msg);
+  };
+
+  activeStream.onerror = () => {
+    document.getElementById('progressLabel').textContent = 'Connection error — check console.';
+    activeStream.close();
+    document.getElementById('generateBtn').disabled = false;
+    document.getElementById('generateStatus').textContent = '';
+  };
+}
+
+function handleStreamEvent(runId, msg) {
+  const { type, stage, status, message, data } = msg;
+
+  // Heartbeat — ignore
+  if (type === 'heartbeat') return;
+
+  // Pipeline done
+  if (type === 'done') {
+    activeStream && activeStream.close();
+    document.getElementById('generateBtn').disabled = false;
+    document.getElementById('generateStatus').textContent = '';
+    loadHistory();
+    loadRunResults(runId);
+    return;
+  }
+
+  // Update progress label
+  if (message) {
+    document.getElementById('progressLabel').textContent = message;
+  }
+
+  // Stage update
+  if (stage && stage !== 'pipeline') {
+    updateStageNode(stage, status, message);
+
+    // Update gallery as images arrive
+    if ((status === 'completed' || status === 'regenerated') && data && data.local_path) {
+      updateGalleryItem(stage, data.local_path);
+      // Update hero
+      if (stage === 'hero_image') {
+        setHeroImage(data.local_path);
+      }
+    }
+  }
+
+  // Brand text arrived
+  if (stage === 'brand_text' && status === 'completed' && data) {
+    showBrandText(data);
+    document.getElementById('resultsContainer').classList.add('visible');
+  }
+
+  // Pipeline complete
+  if (stage === 'pipeline' && status === 'complete' && data) {
+    if (data.brand_data) showBrandText(data.brand_data);
+    if (data.images) showAllImages(data.images);
+  }
+
+  // Pipeline failed
+  if (stage === 'pipeline' && status === 'failed') {
+    showError(message || 'Pipeline failed');
+  }
+}
+
+// ── Results display ────────────────────────────────────────────────────
+async function loadRunResults(runId) {
+  const r = await fetch(`/api/runs/${runId}`);
+  const run = await r.json();
+  activeRunId = runId;
+  renderResults(run);
+}
+
+function renderResults(run) {
+  document.getElementById('resultsContainer').classList.add('visible');
+  if (run.brand_data) showBrandText(run.brand_data);
+  if (run.images) showAllImages(run.images);
+  if (run.api_calls) showApiCalls(run.api_calls);
+}
+
+function showBrandText(brand) {
+  setEl('resBrandName',  brand.brand_name || '');
+  setEl('resTagline',    brand.tagline || '');
+  setEl('resBrandStory', brand.brand_story || '');
+  setEl('resProductDesc',brand.product_description || '');
+  setEl('resLogoDir',    brand.logo_direction || '');
+
+  // Voice tags
+  const vContainer = document.getElementById('resVoice');
+  vContainer.innerHTML = '';
+  (brand.brand_voice || []).forEach(v => {
+    const t = document.createElement('span');
+    t.className = 'voice-tag';
+    t.textContent = v;
+    vContainer.appendChild(t);
+  });
+
+  // Palette swatches
+  const pContainer = document.getElementById('resPalette');
+  pContainer.innerHTML = '';
+  (brand.color_palette || []).forEach(c => {
+    const s = document.createElement('div');
+    s.className = 'swatch';
+    s.style.background = c;
+    s.title = c;
+    s.dataset.color = c;
+    s.onclick = () => navigator.clipboard.writeText(c).catch(() => {});
+    pContainer.appendChild(s);
+  });
+
+  // Typography
+  const typo = brand.typography || {};
+  setEl('resTypography', `${typo.headline || ''} / ${typo.body || ''}`);
+
+  // Features
+  const fList = document.getElementById('resFeatures');
+  fList.innerHTML = '';
+  (brand.feature_bullets || []).forEach(b => {
+    const li = document.createElement('li');
+    li.textContent = b;
+    fList.appendChild(li);
+  });
+
+  // Usage
+  const uList = document.getElementById('resUsage');
+  uList.innerHTML = '';
+  (brand.usage_examples || []).forEach(u => {
+    const li = document.createElement('li');
+    li.textContent = u;
+    uList.appendChild(li);
+  });
+}
+
+function showAllImages(images) {
+  if (images.hero_image) setHeroImage(images.hero_image);
+
+  const imageStages = [
+    'logo_image', 'product_angle', 'product_topdown', 'product_macro',
+    'product_in_use', 'merch_tshirt', 'merch_hat',
+  ];
+  imageStages.forEach(s => {
+    if (images[s]) updateGalleryItem(s, images[s]);
+  });
+}
+
+function setHeroImage(src) {
+  const img = document.getElementById('resHeroImg');
+  const ph  = document.getElementById('resHeroPlaceholder');
+  img.src = src;
+  img.style.display = 'block';
+  ph.style.display = 'none';
+}
+
+function updateGalleryItem(stage, src) {
+  const grid = document.getElementById('galleryGrid');
+  let item = document.getElementById(`gallery-${stage}`);
+
+  if (!item) {
+    item = document.createElement('div');
+    item.className = 'gallery-item';
+    item.id = `gallery-${stage}`;
+    grid.appendChild(item);
+  }
+
+  const label = STAGE_LABELS[stage] || stage;
+  item.innerHTML = `
+    <a href="${src}" target="_blank">
+      <img src="${src}" alt="${label}" loading="lazy" />
+    </a>
+    <div class="gallery-footer">
+      <span class="gallery-label">${label}</span>
+      <button class="regen-btn" title="Regenerate ${label}"
+        onclick="openRegenModal('${stage}')">↻</button>
+    </div>
+  `;
+}
+
+// ── API calls display ──────────────────────────────────────────────────
+function showApiCalls(calls) {
+  const list = document.getElementById('apiCallsList');
+  list.innerHTML = '';
+  (calls || []).forEach((call, i) => {
+    const badge = call.api_type || 'unknown';
+    const item = document.createElement('div');
+    item.className = 'api-call-item';
+    const payloadJson = JSON.stringify(call.payload || {}, null, 2);
+    item.innerHTML = `
+      <div class="api-call-header" onclick="toggleApiCall(this)">
+        <span class="api-badge ${badge}">${badge.toUpperCase()}</span>
+        <span class="api-call-stage">${call.stage || ''}</span>
+        <span class="api-call-model">${call.model || ''}</span>
+        <span>▶</span>
+      </div>
+      <div class="api-call-body">
+        <pre>${escapeHtml(payloadJson)}</pre>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function toggleApiCall(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+  const arrow = header.querySelector('span:last-child');
+  arrow.textContent = body.classList.contains('open') ? '▼' : '▶';
+}
+
+function toggleApiCalls() {
+  const card = document.getElementById('apiCallsCard');
+  card.style.display = card.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── Regen modal ────────────────────────────────────────────────────────
+function openRegenModal(stage) {
+  if (!activeRunId) return;
+  regenTarget = { runId: activeRunId, stage };
+  document.getElementById('regenStageName').textContent = STAGE_LABELS[stage] || stage;
+  document.getElementById('regenPromptInput').value = '';
+  document.getElementById('regenCurrentPrompt').textContent = '';
+  document.getElementById('regenModal').classList.add('open');
+
+  // Show current prompt if available
+  fetch(`/api/runs/${activeRunId}`).then(r => r.json()).then(run => {
+    const prompts = run.prompts || {};
+    if (prompts[stage]) {
+      document.getElementById('regenCurrentPrompt').textContent =
+        'Current prompt: ' + prompts[stage].substring(0, 200) + (prompts[stage].length > 200 ? '…' : '');
+    }
+  }).catch(() => {});
+}
+
+function closeRegenModal() {
+  document.getElementById('regenModal').classList.remove('open');
+}
+
+async function confirmRegen() {
+  const { runId, stage } = regenTarget;
+  if (!runId || !stage) return;
+
+  const customPrompt = document.getElementById('regenPromptInput').value.trim() || null;
+  closeRegenModal();
+
+  // Mark stage as started in UI
+  updateStageNode(stage, 'started', `Regenerating ${STAGE_LABELS[stage]}…`);
+
+  // Attach a new SSE stream for regen
+  if (activeStream) activeStream.close();
+  _get_or_create_queue_and_stream(runId, stage);
+
+  try {
+    const r = await fetch(`/api/runs/${runId}/regenerate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage, prompt: customPrompt }),
+    });
+    if (!r.ok) {
+      const d = await r.json();
+      showError(d.error || 'Regeneration failed');
+    }
+  } catch (e) {
+    showError('Network error: ' + e.message);
+  }
+}
+
+function _get_or_create_queue_and_stream(runId, stage) {
+  const es = new EventSource(`/api/stream/${runId}`);
+  activeStream = es;
+  es.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'done') { es.close(); return; }
+    if (!msg.stage) return;
+    updateStageNode(msg.stage, msg.status, msg.message);
+    if ((msg.status === 'completed' || msg.status === 'regenerated') && msg.data && msg.data.local_path) {
+      updateGalleryItem(msg.stage, msg.data.local_path);
+      if (msg.stage === 'hero_image') setHeroImage(msg.data.local_path);
+    }
+  };
+  es.onerror = () => es.close();
+}
+
+// ── History ────────────────────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const r = await fetch('/api/runs');
+    const runs = await r.json();
+    renderHistory(runs);
+  } catch (e) { console.error(e); }
+}
+
+function renderHistory(runs) {
+  const list = document.getElementById('historyList');
+  if (!runs.length) {
+    list.innerHTML = `<div class="empty-state"><div class="emoji">◉</div>No runs yet — generate your first brand!</div>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  runs.forEach(run => {
+    const card = document.createElement('div');
+    card.className = 'run-card' + (run.id === activeRunId ? ' active' : '');
+    card.onclick = () => openHistoryRun(run.id);
+
+    const thumb = run.hero_image
+      ? `<img class="run-thumb" src="${run.hero_image}" alt="" loading="lazy" />`
+      : `<div class="run-thumb-placeholder">✦</div>`;
+
+    const elapsed = run.duration ? ` · ${Math.round(run.duration)}s` : '';
+    const brandLabel = run.brand_name ? `<div class="brand-name">${escapeHtml(run.brand_name)}</div>` : '';
+
+    card.innerHTML = `
+      ${thumb}
+      <div class="run-info">
+        <div class="concept">${escapeHtml(run.concept)}</div>
+        ${brandLabel}
+        <div class="meta">
+          <span class="tone-badge ${run.tone}">${run.tone}</span>
+          <span class="status-badge ${run.status}">${run.status}${elapsed}</span>
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+async function openHistoryRun(runId) {
+  activeRunId = runId;
+  document.querySelectorAll('.run-card').forEach(c => c.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  // Reset pipeline UI
+  document.getElementById('pipelineCard').classList.remove('visible');
+  document.getElementById('resultsContainer').classList.remove('visible');
+  document.getElementById('galleryGrid').innerHTML = '';
+  document.getElementById('apiCallsList').innerHTML = '';
+
+  const r = await fetch(`/api/runs/${runId}`);
+  const run = await r.json();
+  renderResults(run);
+  if (run.api_calls) showApiCalls(run.api_calls);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────
+function setEl(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Keyboard shortcut: Enter in concept field submits
+document.getElementById('conceptInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startRun();
+});
+
+// ── Boot ───────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
